@@ -40,3 +40,39 @@ starts in DRAFT. There is no Spring or database in this milestone.
 Supplied lecture slides and assignment screenshots remain local course reference materials and
 are excluded from version control.
 
+## Architecture
+
+The Maven modules are domain (plain Java) and app (Spring Boot). Dependencies point inward:
+
+```text
+app: dto        client        handler        config
+     input      outbound      use cases      Application, @Bean
+          \        |             /                |
+           \       |            /          service.RequestService
+            \      |           /                  |
+domain: RequestId, RequestStatus, RequestPolicy, RequestRule
+        TransitionRule, BudgetHoldRule, RuleChain, PurchaseRequest
+```
+
+The client, dto, and handler packages are reserved boundaries and contain no fake implementations.
+The domain module has only JUnit as a test dependency. It never imports Spring or database code.
+RequestService uses constructor injection. RequestConfiguration creates a chain that checks the
+status transition first and the procurement hold second. A thrown exception stops the chain.
+A hold blocks ordering but allows approval.
+
+## Lab 2 and running the application
+
+Spring Boot 3.4.5 runs the same Lab 1 domain. There is no HTTP server or database in this milestone.
+Application is in config and explicitly scans the complete product package.
+
+```powershell
+mvn -q verify
+mvn -q install
+mvn -pl app spring-boot:run
+```
+
+The non-web application starts its Spring context and then exits normally. The automated wiring
+test calls the injected RequestService. On Windows without Maven installed, use .\\mvnw.cmd
+instead of mvn. On Unix, use sh ./mvnw. The wrapper downloads Maven and verifies its checksum.
+See PR_PROPOSAL.md for the proposed Lab 2 title and checklist; no remote PR is claimed.
+
