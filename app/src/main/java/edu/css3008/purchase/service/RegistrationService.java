@@ -6,6 +6,7 @@ import edu.css3008.purchase.domain.RequestStore;
 import edu.css3008.purchase.dto.RegisterRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Objects;
 
 @Service
 public class RegistrationService {
@@ -28,6 +29,10 @@ public class RegistrationService {
 
     @Transactional(readOnly = true)
     public long countByBusinessKey(String businessKey) {
-        return store.countByBusinessKey(businessKey);
+        Objects.requireNonNull(businessKey, "Business key must not be null");
+        if (businessKey.isBlank()) {
+            throw new IllegalArgumentException("Business key must not be blank");
+        }
+        return store.countByBusinessKey(businessKey.strip());
     }
 }

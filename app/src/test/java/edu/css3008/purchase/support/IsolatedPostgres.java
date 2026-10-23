@@ -11,22 +11,26 @@ public final class IsolatedPostgres {
 
     public static synchronized String url() {
         if (isolatedUrl == null) {
-            String baseUrl = requiredEnvironment("DB_URL");
-            if (!baseUrl.startsWith("jdbc:postgresql:") || baseUrl.contains("currentSchema=")) {
-                throw new IllegalStateException("DB_URL must be a PostgreSQL JDBC URL without currentSchema");
-            }
-            String schema = "css3008_test_" + UUID.randomUUID().toString().replace("-", "");
-            try (var connection = DriverManager.getConnection(baseUrl, username(), password());
-                 var statement = connection.createStatement()) {
-                // The identifier contains a fixed prefix and generated hexadecimal characters only.
-                statement.execute("CREATE SCHEMA " + schema);
-            } catch (SQLException failure) {
-                throw new IllegalStateException("Cannot create an isolated PostgreSQL test schema. "
-                        + "Start PostgreSQL and check DB_URL, DB_USERNAME, and DB_PASSWORD.", failure);
-            }
-            isolatedUrl = baseUrl + (baseUrl.contains("?") ? "&" : "?") + "currentSchema=" + schema;
+            isolatedUrl = newSchemaUrl();
         }
         return isolatedUrl;
+    }
+
+    public static String newSchemaUrl() {
+        String baseUrl = requiredEnvironment("DB_URL");
+        if (!baseUrl.startsWith("jdbc:postgresql:") || baseUrl.contains("currentSchema=")) {
+            throw new IllegalStateException("DB_URL must be a PostgreSQL JDBC URL without currentSchema");
+        }
+        String schema = "css3008_test_" + UUID.randomUUID().toString().replace("-", "");
+        try (var connection = DriverManager.getConnection(baseUrl, username(), password());
+             var statement = connection.createStatement()) {
+            // The identifier contains a fixed prefix and generated hexadecimal characters only.
+            statement.execute("CREATE SCHEMA " + schema);
+        } catch (SQLException failure) {
+            throw new IllegalStateException("Cannot create an isolated PostgreSQL test schema. "
+                    + "Start PostgreSQL and check DB_URL, DB_USERNAME, and DB_PASSWORD.", failure);
+        }
+        return baseUrl + (baseUrl.contains("?") ? "&" : "?") + "currentSchema=" + schema;
     }
 
     public static String username() {

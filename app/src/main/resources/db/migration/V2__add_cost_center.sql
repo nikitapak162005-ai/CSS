@@ -1,0 +1,2 @@
+ALTER TABLE purchase_request
+    ADD COLUMN cost_center TEXT NOT NULL DEFAULT 'UNASSIGNED';

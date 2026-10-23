@@ -19,6 +19,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+import jakarta.persistence.EntityManager;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -29,10 +32,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest(classes = Application.class, properties = {
-        "spring.sql.init.mode=always",
-        "spring.sql.init.schema-locations=classpath:db/schema.sql"
-})
+@SpringBootTest(classes = Application.class)
 class PostgresIntegrationIT {
     @Autowired
     private RegistrationService registration;
@@ -40,6 +40,10 @@ class PostgresIntegrationIT {
     private RequestStore store;
     @Autowired
     private JdbcTemplate jdbc;
+    @Autowired
+    private PlatformTransactionManager transactions;
+    @Autowired
+    private EntityManager entities;
 
     @DynamicPropertySource
     static void isolatedDatabase(DynamicPropertyRegistry registry) {
@@ -80,11 +84,12 @@ class PostgresIntegrationIT {
 
     @ParameterizedTest
     @ValueSource(strings = {"DRAFT", "APPROVED", "ORDERED"})
-    void jdbcPersistsEachAllowedStatusAndAllRequiredFields(String statusCode) {
+    void jpaPersistsEachAllowedStatusAndAllRequiredFields(String statusCode) {
         Instant createdAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
         PurchaseRequest request = new PurchaseRequest(RequestId.newId(), "PR-" + statusCode,
                 RequestStatus.fromCode(statusCode), "Laptop purchase", createdAt);
-        store.insert(request);
+        TransactionTemplate transaction = new TransactionTemplate(transactions);
+        transaction.executeWithoutResult(status -> store.insert(request));
 
         PurchaseRequest restored = jdbc.queryForObject("""
                 SELECT id, business_key, status, title, created_at
@@ -94,6 +99,12 @@ class PostgresIntegrationIT {
                 result.getString("title"), result.getTimestamp("created_at").toInstant()), request.businessKey());
 
         assertEquals(request, restored);
+        PurchaseRequest mapped = transaction.execute(status -> {
+            RequestEntity entity = entities.find(RequestEntity.class, request.id().value());
+            assertEquals("UNASSIGNED", entity.getCostCenter());
+            return entity.toDomain();
+        });
+        assertEquals(request, mapped);
     }
 
     @Test
@@ -103,13 +114,13 @@ class PostgresIntegrationIT {
                 WHERE table_schema = current_schema() AND table_name = 'purchase_request'
                 ORDER BY ordinal_position
                 """, String.class);
-        assertEquals(List.of("id", "business_key", "status", "title", "created_at"), columns);
+        assertEquals(List.of("id", "business_key", "status", "title", "created_at", "cost_center"), columns);
         assertEquals(0L, jdbc.queryForObject("""
                 SELECT count(*) FROM information_schema.columns
                 WHERE table_schema = current_schema() AND table_name = 'purchase_request'
                 AND is_nullable <> 'NO'
                 """, Long.class));
-        assertEquals(List.of("uuid", "text", "text", "text", "timestamp with time zone"),
+        assertEquals(List.of("uuid", "text", "text", "text", "timestamp with time zone", "text"),
                 jdbc.queryForList("""
                         SELECT data_type FROM information_schema.columns
                         WHERE table_schema = current_schema() AND table_name = 'purchase_request'
@@ -153,6 +164,20 @@ class PostgresIntegrationIT {
         assertNotNull(createdAt);
         assertFalse(createdAt.toInstant().isBefore(beforeInsert));
         assertFalse(createdAt.toInstant().isAfter(Instant.now().plusSeconds(1)));
+        assertEquals("UNASSIGNED", jdbc.queryForObject(
+                "SELECT cost_center FROM purchase_request WHERE business_key = ?", String.class, "PR-DEFAULT"));
+    }
+
+    @Test
+    void flywayAppliesBothVersionsBeforeHibernateValidation() {
+        assertEquals(List.of("1", "2"), jdbc.queryForList("""
+                SELECT version FROM flyway_schema_history
+                WHERE success = true AND version IS NOT NULL ORDER BY installed_rank
+                """, String.class));
+        assertEquals(0L, jdbc.queryForObject(
+                "SELECT count(*) FROM flyway_schema_history WHERE success = false", Long.class));
+        assertEquals(2L, jdbc.queryForObject(
+                "SELECT count(*) FROM flyway_schema_history WHERE checksum IS NOT NULL", Long.class));
     }
 
     @Test
