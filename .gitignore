@@ -1,0 +1,13 @@
+**/target/
+.idea/
+.vscode/
+*.iml
+.env
+.env.*
+!.env.example
+.local/
+*.log
+/*.pptx
+/photo_*.jpg
+/CSS-3008-Lab-*.md
+
