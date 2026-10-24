@@ -44,5 +44,6 @@ Maven 3.9.16 using the committed SHA-256 checksum.
 - Expected unique-violation messages in the transaction tests have SQLSTATE 23505. Mockito emits
   a Java 21 agent-attachment warning; it does not prevent any test from executing.
 
-No remote repository, pull request, Docker application image, REST API, or external HTTP adapter
-was created. No environmental blocker remained after installing the portable local tools.
+The semester repository is [nikitapak162005-ai/CSS](https://github.com/nikitapak162005-ai/CSS).
+No pull request, Docker application image, REST API, or external HTTP adapter was created.
+No environmental blocker remained after installing the portable local tools.

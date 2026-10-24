@@ -4,6 +4,8 @@ CSS-3008 Corporate Development: one Java 21 project developed through three labo
 and a later Midterm extension. The current version uses Spring Boot 3.4.5, PostgreSQL,
 JPA/Hibernate, and Flyway. The original JDBC-only Lab 3 is preserved at Git tag `lab-3-jdbc`.
 
+Repository: [nikitapak162005-ai/CSS](https://github.com/nikitapak162005-ai/CSS).
+
 ## Product
 
 Employees create purchase requests, managers approve them, and procurement orders approved requests.
@@ -17,12 +19,12 @@ a title, a creation time, and one of three statuses: `DRAFT`, `APPROVED`, `ORDER
 
 ## Status table
 
-| From | To | Allowed | Business reason |
-|---|---|---|---|
-| DRAFT | APPROVED | true | A manager approves the request |
-| APPROVED | ORDERED | true | An approved request can be ordered |
-| DRAFT | ORDERED | false | A purchase cannot bypass approval |
-| ORDERED | DRAFT | false | An ordered request cannot return to draft |
+| From     | To       | Allowed | Business reason                           |
+|----------|----------|---------|-------------------------------------------|
+| DRAFT    | APPROVED | true    | A manager approves the request            |
+| APPROVED | ORDERED  | true    | An approved request can be ordered        |
+| DRAFT    | ORDERED  | false   | A purchase cannot bypass approval         |
+| ORDERED  | DRAFT    | false   | An ordered request cannot return to draft |
 
 ## Forbidden — why
 
@@ -55,18 +57,16 @@ purchase-request-management/       Maven parent
   PR_PROPOSAL.md
 ```
 
-The course package diagram has inward dependencies:
+The course packages depend inward on the domain:
 
 ```text
-app: dto      client      handler       config
-      \         |           /             |
-       \        |          /        service (Spring)
-        \       |         /               |
-         \      |        /       persistence (JPA/PostgreSQL)
-          \     |       /                 |
-       domain: RequestId, RequestStatus, RequestPolicy,
-               RequestRule, RuleChain, PurchaseRequest, RequestStore
-                         (plain Java)
+app: dto      client      handler      config
+      \          |          /            |
+       \         |         /          service
+        \        |        /              |
+         \       |       /         persistence
+          \      |      /                |
+domain: RequestId, RequestStatus, RequestPolicy, RequestRule, RequestStore
 ```
 
 `app` depends on `domain`. Domain never depends on app, Spring, JDBC, JPA, or Hibernate.
@@ -246,7 +246,8 @@ them later. This repository preserves the JDBC milestone and labels ORM/migratio
 Midterm extension. It does not claim that the original assignment required them.
 
 `PR_PROPOSAL.md` contains a proposed Lab 2 title/checklist. Its CSS-18 identifier is illustrative,
-not a real Jira ticket. No remote repository, push, or pull request has been created.
+not a real Jira ticket. The semester repository is linked above. No Jira ticket or pull request
+has been created.
 Supplied assignment files, slides, and screenshots remain local course reference materials
 and are excluded from Git. Build outputs, IDE files, credentials, and local database data are
 also excluded.
