@@ -57,17 +57,15 @@ purchase-request-management/       Maven parent
   PR_PROPOSAL.md
 ```
 
-The course packages depend inward on the domain:
+The packages have the following responsibilities:
 
-```text
-app: dto      client      handler      config
-      \          |          /            |
-       \         |         /          service
-        \        |        /              |
-         \       |       /         persistence
-          \      |      /                |
-domain: RequestId, RequestStatus, RequestPolicy, RequestRule, RequestStore
-```
+- `domain` contains request types, statuses, and business rules.
+- `dto` contains the input data for registering a request.
+- `client` contains the approval gateway interface.
+- `handler` coordinates approval and handles approval errors.
+- `config` starts Spring Boot and creates the rule chain.
+- `service` checks status changes and manages transactions.
+- `persistence` maps requests to database rows and saves them.
 
 `app` depends on `domain`. Domain never depends on app, Spring, JDBC, JPA, or Hibernate.
 The domain POM has only a test-scoped JUnit dependency. Framework versions are managed by the
